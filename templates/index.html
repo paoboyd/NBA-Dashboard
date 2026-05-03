@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #14141c;
+            --border: #1e1e2a;
+            --text: #e8e8ed;
+            --muted: #666;
+            --team-color: #333;
+            --team-accent: #ccc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            padding: 32px 40px 24px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.4s;
+        }
+        .header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 52px;
+            letter-spacing: 2px;
+            line-height: 1;
+        }
+        .header .subtitle {
+            font-size: 13px;
+            color: var(--muted);
+            letter-spacing: 1px;
+            margin-top: 4px;
+        }
+
+        /* Team selector */
+        .team-grid {
+            display: flex;
+            gap: 8px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .team-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: #999;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .team-btn:hover { border-color: #444; color: #ccc; transform: translateY(-1px); }
+        .team-btn.active { color: #fff; }
+
+        /* Search */
+        .search-box {
+            margin-top: 16px;
+            position: relative;
+            max-width: 320px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px 10px 40px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+        }
+        .search-box input:focus { border-color: var(--team-accent); }
+        .search-box::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            padding: 24px 40px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 20px 24px;
+            border: 1px solid var(--border);
+            flex: 1;
+            min-width: 150px;
+        }
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 32px;
+            letter-spacing: 1px;
+        }
+        .stat-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            padding: 0 40px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 14px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: #aaa; }
+        .tab.active { color: #fff; }
+
+        /* Content */
+        .content { padding: 24px 40px 80px; }
+
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th {
+            text-align: left;
+            padding: 12px 14px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #555;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+        .data-table th:hover { color: #999; }
+        .data-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #111118;
+            font-size: 14px;
+        }
+        .data-table tr:hover td { background: #16161f; }
+
+        /* Badges */
+        .jersey {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 8px;
+            font-weight: 700; font-size: 13px;
+            font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;
+        }
+        .pos-tag {
+            display: inline-block; padding: 3px 10px; border-radius: 6px;
+            font-size: 12px; font-weight: 600; background: #1e1e2a; color: #888;
+        }
+        .contract-tag {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 11px; font-weight: 600;
+        }
+        .contract-tag.max { background: #3d1a1a; color: #ff6b6b; }
+        .contract-tag.standard { background: #1a2a3d; color: #6bb5ff; }
+        .contract-tag.rookie { background: #1a3d1a; color: #6bff6b; }
+
+        /* Salary bars */
+        .salary-bar-wrap { margin-bottom: 18px; }
+        .salary-bar-label {
+            display: flex; justify-content: space-between; margin-bottom: 4px;
+        }
+        .salary-bar-bg {
+            height: 6px; background: var(--border); border-radius: 3px;
+        }
+        .salary-bar {
+            height: 6px; border-radius: 3px; transition: width 0.5s ease;
+        }
+        .salary-pct { font-size: 11px; color: #555; margin-top: 3px; }
+
+        /* Player cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .player-card {
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .player-card:hover { border-color: #333; transform: translateY(-2px); }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .card-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 26px; letter-spacing: 1px; line-height: 1.1;
+        }
+        .card-stats {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+            margin-bottom: 14px;
+        }
+        .card-stat {
+            text-align: center; background: var(--bg); border-radius: 8px; padding: 10px 0;
+        }
+        .card-stat-val {
+            font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #fff;
+        }
+        .card-stat-label {
+            font-size: 10px; color: #555; letter-spacing: 1px; font-weight: 600;
+        }
+        .card-footer {
+            display: flex; justify-content: space-between; font-size: 12px; color: var(--muted);
+        }
+
+        /* History modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--surface); border-radius: 16px; padding: 32px;
+            max-width: 600px; width: 90%; border: 1px solid var(--border);
+            max-height: 80vh; overflow-y: auto;
+        }
+        .modal h2 {
+            font-family: 'Bebas Neue', sans-serif; font-size: 32px;
+            letter-spacing: 1px; margin-bottom: 20px;
+        }
+        .modal-close {
+            float: right; background: none; border: none; color: var(--muted);
+            font-size: 24px; cursor: pointer;
+        }
+
+        /* Loading */
+        .loading { text-align: center; padding: 60px; color: var(--muted); }
+        .spinner {
+            width: 30px; height: 30px; border: 3px solid var(--border);
+            border-top-color: var(--team-accent);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* DB info badge */
+        .db-badge {
+            position: fixed; bottom: 16px; right: 16px; background: var(--surface);
+            border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px;
+            font-size: 11px; color: var(--muted); z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 20px; }
+            .header h1 { font-size: 36px; }
+            .stats-row, .content, .tabs { padding-left: 20px; padding-right: 20px; }
+            .stat-card { min-width: 120px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header" id="header">
+    <div style="display:flex; align-items:center; gap:16px;">
+        <div style="display:flex; flex-direction:column; gap:2px;">
+            <h1 style="font-family:'Bebas Neue',sans-serif; font-size:52px; letter-spacing:2px; line-height:1; color:#4A90D9; margin:0;">NBA DASHBOARD</h1>
+            <div style="display:flex; align-items:baseline; gap:8px;">
+                <span id="team-city" style="font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1.5px; line-height:1; color:var(--text);">Select a</span>
+                <span id="team-name" style="font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:1.5px; line-height:1; color:var(--text);">Team</span>
+            </div>
+        </div>
+    </div>
+    <p class="subtitle" id="team-info">Choose a team below to view their dashboard</p>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search any player..." oninput="handleSearch(this.value)">
+        <div id="searchResults" style="position:absolute;top:46px;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:none;z-index:50;max-height:300px;overflow-y:auto;"></div>
+    </div>
+
+    <div class="team-grid" id="teamGrid"></div>
+</div>
+
+<!-- Stats -->
+<div class="stats-row" id="statsRow" style="display:none;"></div>
+
+<!-- Tabs -->
+<div class="tabs" id="tabsBar" style="display:none;">
+    <button class="tab active" onclick="switchTab('roster',this)">Roster</button>
+    <button class="tab" onclick="switchTab('salary',this)">Salary</button>
+    <button class="tab" onclick="switchTab('cards',this)">Player Cards</button>
+</div>
+
+<!-- Content -->
+<div class="content" id="content">
+    <div class="loading" id="initialMsg">
+        <p style="font-family:'Optima','Optima Nova LT','URW Classico',Candara,serif; font-size:22px; font-weight:700; color:#4A90D9; letter-spacing:1px; margin-bottom:8px;">NBA Dashboard</p>
+        <p>Select a team above to view roster, salary, and stats</p>
+    </div>
+</div>
+
+<!-- Player History Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <h2 id="modalTitle">Player History</h2>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<!-- DB Info -->
+<div class="db-badge">
+    DB: {{ db_stats.teams }} teams · {{ db_stats.players }} players · {{ db_stats.stats_records }} stats
+</div>
+
+<script>
+// ---- STATE ----
+let teams = [];
+let currentTeam = null;
+let currentRoster = [];
+let currentTab = 'roster';
+let sortKey = 'salary';
+let sortDir = 'desc';
+
+// ---- INIT ----
+async function init() {
+    const res = await fetch('/api/teams');
+    teams = await res.json();
+    renderTeamButtons();
+}
+
+function renderTeamButtons() {
+    const grid = document.getElementById('teamGrid');
+    // Group by conference
+    const east = teams.filter(t => t.conference === 'Eastern');
+    const west = teams.filter(t => t.conference === 'Western');
+
+    let html = '<div style="width:100%;font-size:11px;color:#555;letter-spacing:1px;margin-bottom:4px;">EASTERN</div>';
+    east.forEach(t => {
+        html += `<button class="team-btn" data-id="${t.team_id}" onclick="loadTeam(${t.team_id}, this)">${t.city} ${t.name}</button>`;
+    });
+    html += '<div style="width:100%;font-size:11px;color:#555;letter-spacing:1px;margin:8px 0 4px;">WESTERN</div>';
+    west.forEach(t => {
+        html += `<button class="team-btn" data-id="${t.team_id}" onclick="loadTeam(${t.team_id}, this)">${t.city} ${t.name}</button>`;
+    });
+    grid.innerHTML = html;
+}
+
+// ---- LOAD TEAM ----
+function resetTeamView() {
+    currentTeam = null;
+    currentRoster = [];
+    document.getElementById('team-city').textContent = 'Select a';
+    document.getElementById('team-name').textContent = 'Team';
+    document.getElementById('team-name').style.color = 'var(--text)';
+    document.getElementById('team-info').textContent = 'Choose a team below to view their dashboard';
+    document.getElementById('header').style.background = '';
+    document.documentElement.style.setProperty('--team-color', '#333333');
+    document.documentElement.style.setProperty('--team-accent', '#888888');
+    document.getElementById('statsRow').style.display = 'none';
+    document.getElementById('tabsBar').style.display = 'none';
+    document.getElementById('content').innerHTML = '';
+    document.querySelectorAll('.team-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderColor = '';
+        btn.style.boxShadow = '';
+    });
+}
+
+async function loadTeam(teamId, btn) {
+    // Toggle off if the same team is clicked again
+    if (btn && btn.classList.contains('active')) {
+        resetTeamView();
+        return;
+    }
+
+    // Show loading
+    document.getElementById('content').innerHTML = '<div class="loading"><div class="spinner"></div>Loading roster...</div>';
+
+    const res = await fetch(`/api/team/${teamId}`);
+    const data = await res.json();
+    currentTeam = data.team;
+    currentRoster = data.roster;
+
+    // Set CSS vars
+    document.documentElement.style.setProperty('--team-color', currentTeam.primary_color);
+    document.documentElement.style.setProperty('--team-accent', currentTeam.accent_color);
+
+    // Update header
+    document.getElementById('header').style.background =
+        `linear-gradient(135deg, ${currentTeam.primary_color}22 0%, #0a0a0f 60%)`;
+    document.getElementById('team-city').textContent = currentTeam.city;
+    document.getElementById('team-name').textContent = currentTeam.name;
+    document.getElementById('team-name').style.color = currentTeam.accent_color;
+    document.getElementById('team-info').textContent =
+        `${currentTeam.conference} Conference · ${currentTeam.division} · ${currentTeam.arena}`;
+
+    // Highlight active button
+    document.querySelectorAll('.team-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderColor = '';
+        btn.style.boxShadow = '';
+        if (parseInt(btn.dataset.id) === teamId) {
+            btn.classList.add('active');
+            btn.style.borderColor = currentTeam.accent_color;
+            btn.style.boxShadow = `0 0 20px ${currentTeam.accent_color}22`;
+        }
+    });
+
+    // Show stats + tabs
+    document.getElementById('statsRow').style.display = 'flex';
+    document.getElementById('tabsBar').style.display = 'flex';
+    renderStats(data);
+    renderTab();
+}
+
+// ---- STATS ROW ----
+function renderStats(data) {
+    const roster = data.roster;
+    const totalSalary = roster.reduce((s, p) => s + (p.salary || 0), 0);
+    const topScorer = [...roster].sort((a, b) => (b.ppg || 0) - (a.ppg || 0))[0];
+    const avgPPG = roster.length ? (roster.reduce((s, p) => s + (p.ppg || 0), 0) / roster.length).toFixed(1) : 0;
+
+    document.getElementById('statsRow').innerHTML = `
+        <div class="stat-card">
+            <div class="stat-label">Total Salary</div>
+            <div class="stat-value" style="color:var(--team-accent)">${formatMoney(totalSalary)}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Roster Size</div>
+            <div class="stat-value">${roster.length}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Top Scorer</div>
+            <div class="stat-value" style="font-size:24px">${topScorer ? topScorer.last_name : '-'}</div>
+            <div class="stat-sub">${topScorer ? topScorer.ppg + ' PPG' : ''}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Team Avg PPG</div>
+            <div class="stat-value">${avgPPG}</div>
+        </div>
+    `;
+}
+
+// ---- TABS ----
+function switchTab(tab, el) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active');
+        t.style.borderBottomColor = 'transparent';
+    });
+    el.classList.add('active');
+    el.style.borderBottomColor = currentTeam ? currentTeam.accent_color : '#fff';
+    renderTab();
+}
+
+function renderTab() {
+    if (currentTab === 'roster') renderRoster();
+    else if (currentTab === 'salary') renderSalary();
+    else if (currentTab === 'cards') renderCards();
+}
+
+// ---- ROSTER TABLE ----
+function renderRoster() {
+    const sorted = sortRoster([...currentRoster]);
+    const topPPG = Math.max(...currentRoster.map(p => p.ppg || 0));
+
+    let html = `<div style="overflow-x:auto;"><table class="data-table">
+        <thead><tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Pos</th>
+            <th onclick="doSort('salary')">Salary${sortArrow('salary')}</th>
+            <th onclick="doSort('years_on_team')">Tenure${sortArrow('years_on_team')}</th>
+            <th>Contract</th>
+            <th onclick="doSort('ppg')">PPG${sortArrow('ppg')}</th>
+            <th onclick="doSort('rpg')">RPG${sortArrow('rpg')}</th>
+            <th onclick="doSort('apg')">APG${sortArrow('apg')}</th>
+            <th onclick="doSort('fg_pct')">FG%${sortArrow('fg_pct')}</th>
+            <th>GP</th>
+        </tr></thead><tbody>`;
+
+    sorted.forEach(p => {
+        const isTop = (p.ppg || 0) === topPPG && topPPG > 0;
+        const ct = (p.contract_type || 'Standard').toLowerCase();
+        html += `<tr onclick="showHistory(${p.player_id}, '${p.first_name} ${p.last_name}')" style="cursor:pointer">
+            <td><span class="jersey" style="background:${currentTeam.primary_color}33;color:${currentTeam.accent_color}">${p.jersey_number || ''}</span></td>
+            <td style="font-weight:600;color:#fff">${p.first_name} ${p.last_name}</td>
+            <td><span class="pos-tag">${p.position || '-'}</span></td>
+            <td style="font-weight:600;color:#ccc">${p.salary ? formatMoney(p.salary) : '-'}</td>
+            <td style="color:#888">${p.years_on_team ? p.years_on_team + ' yrs' : '-'}</td>
+            <td><span class="contract-tag ${ct}">${p.contract_type || 'Standard'}</span></td>
+            <td style="font-weight:700;color:${isTop ? 'var(--team-accent)' : '#ccc'}">${p.ppg || '-'}</td>
+            <td style="color:#aaa">${p.rpg || '-'}</td>
+            <td style="color:#aaa">${p.apg || '-'}</td>
+            <td style="color:#aaa">${p.fg_pct ? (p.fg_pct * 100).toFixed(1) + '%' : '-'}</td>
+            <td style="color:#888">${p.games_played || '-'}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+// ---- SALARY VIEW ----
+function renderSalary() {
+    const sorted = [...currentRoster].filter(p => p.salary > 0).sort((a, b) => b.salary - a.salary);
+    const maxSalary = sorted.length ? sorted[0].salary : 1;
+    const totalSalary = sorted.reduce((s, p) => s + p.salary, 0);
+
+    let html = '<div style="max-width:700px">';
+    sorted.forEach(p => {
+        const pct = ((p.salary / totalSalary) * 100).toFixed(1);
+        html += `<div class="salary-bar-wrap">
+            <div class="salary-bar-label">
+                <span style="font-weight:600;font-size:14px">${p.first_name} ${p.last_name} <span style="color:#555;font-weight:400">#${p.jersey_number || ''}</span></span>
+                <span style="font-weight:700;color:var(--team-accent);font-size:14px">${formatMoney(p.salary)}</span>
+            </div>
+            <div class="salary-bar-bg">
+                <div class="salary-bar" style="width:${(p.salary/maxSalary)*100}%;background:linear-gradient(90deg,${currentTeam.primary_color},${currentTeam.accent_color})"></div>
+            </div>
+            <div class="salary-pct">${pct}% of team total</div>
+        </div>`;
+    });
+
+    html += `<div style="margin-top:32px;padding:16px 20px;background:var(--surface);border-radius:12px;border:1px solid var(--border)">
+        <div style="display:flex;justify-content:space-between">
+            <span style="font-size:13px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:1px">Team Total</span>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--team-accent)">${formatMoney(totalSalary)}</span>
+        </div>
+    </div></div>`;
+    document.getElementById('content').innerHTML = html;
+}
+
+// ---- PLAYER CARDS ----
+function renderCards() {
+    const sorted = [...currentRoster].sort((a, b) => (b.ppg || 0) - (a.ppg || 0));
+    let html = '<div class="cards-grid">';
+    sorted.forEach(p => {
+        html += `<div class="player-card" onclick="showHistory(${p.player_id}, '${p.first_name} ${p.last_name}')">
+            <div class="card-header">
+                <div>
+                    <div class="card-name">${p.first_name}<br><span style="color:var(--team-accent)">${p.last_name}</span></div>
+                    <span class="pos-tag" style="margin-top:8px;display:inline-block">${p.position || '-'}</span>
+                </div>
+                <span class="jersey" style="background:${currentTeam.primary_color}44;color:${currentTeam.accent_color};width:48px;height:48px;font-size:20px;border-radius:12px">
+                    ${p.jersey_number || ''}
+                </span>
+            </div>
+            <div class="card-stats">
+                <div class="card-stat"><div class="card-stat-val">${p.ppg || '-'}</div><div class="card-stat-label">PPG</div></div>
+                <div class="card-stat"><div class="card-stat-val">${p.rpg || '-'}</div><div class="card-stat-label">RPG</div></div>
+                <div class="card-stat"><div class="card-stat-val">${p.apg || '-'}</div><div class="card-stat-label">APG</div></div>
+            </div>
+            <div class="card-footer">
+                <span>${p.salary ? formatMoney(p.salary) : '-'}</span>
+                <span>${p.years_on_team ? p.years_on_team + ' yrs' : '-'}</span>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+// ---- PLAYER HISTORY MODAL ----
+async function showHistory(playerId, name) {
+    document.getElementById('modal').classList.add('show');
+    document.getElementById('modalTitle').textContent = name + ' — 5-Year Stats';
+    document.getElementById('modalContent').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+    const res = await fetch(`/api/player/${playerId}/history`);
+    if (!res.ok) {
+        document.getElementById('modalContent').innerHTML = '<p style="color:#888">Could not load player history.</p>';
+        return;
+    }
+    const history = await res.json();
+
+    if (history.length === 0) {
+        document.getElementById('modalContent').innerHTML = '<p style="color:#888">No historical stats available.</p>';
+        return;
+    }
+
+    let html = `<table class="data-table"><thead><tr>
+        <th>Season</th><th>GP</th><th>PPG</th><th>RPG</th><th>APG</th><th>FG%</th><th>3P%</th><th>FT%</th>
+    </tr></thead><tbody>`;
+
+    history.forEach(s => {
+        html += `<tr>
+            <td style="font-weight:600;color:var(--team-accent)">${s.season_year}</td>
+            <td>${s.games_played}</td>
+            <td style="font-weight:700">${s.ppg}</td>
+            <td>${s.rpg}</td>
+            <td>${s.apg}</td>
+            <td>${s.fg_pct ? (s.fg_pct * 100).toFixed(1) + '%' : '-'}</td>
+            <td>${s.three_pct ? (s.three_pct * 100).toFixed(1) + '%' : '-'}</td>
+            <td>${s.ft_pct ? (s.ft_pct * 100).toFixed(1) + '%' : '-'}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table>';
+    document.getElementById('modalContent').innerHTML = html;
+}
+
+function closeModal() {
+    document.getElementById('modal').classList.remove('show');
+}
+
+// ---- SEARCH ----
+let searchTimeout;
+async function handleSearch(query) {
+    clearTimeout(searchTimeout);
+    const box = document.getElementById('searchResults');
+    if (query.length < 2) { box.style.display = 'none'; return; }
+
+    searchTimeout = setTimeout(async () => {
+        const teamParam = currentTeam ? `&team_id=${currentTeam.team_id}` : '';
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}${teamParam}`);
+        const results = await res.json();
+
+        if (results.length === 0) {
+            box.innerHTML = '<div style="padding:12px;color:#888">No players found</div>';
+        } else {
+            box.innerHTML = results.map(p => `
+                <div style="padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between"
+                     onclick="showHistory(${p.player_id}, '${p.first_name} ${p.last_name}');document.getElementById('searchResults').style.display='none';">
+                    <span><strong>${p.first_name} ${p.last_name}</strong> <span style="color:#888">${p.abbreviation || ''}</span></span>
+                    <span style="color:#888">${p.ppg ? p.ppg + ' PPG' : ''}</span>
+                </div>
+            `).join('');
+        }
+        box.style.display = 'block';
+    }, 300);
+}
+
+// Click outside to close search
+document.addEventListener('click', e => {
+    if (!e.target.closest('.search-box'))
+        document.getElementById('searchResults').style.display = 'none';
+});
+
+// ---- SORTING ----
+function doSort(key) {
+    if (sortKey === key) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+    else { sortKey = key; sortDir = 'desc'; }
+    renderRoster();
+}
+
+function sortRoster(arr) {
+    return arr.sort((a, b) => {
+        const va = a[sortKey] || 0;
+        const vb = b[sortKey] || 0;
+        return sortDir === 'desc' ? vb - va : va - vb;
+    });
+}
+
+function sortArrow(key) {
+    if (sortKey !== key) return '';
+    return sortDir === 'desc' ? ' ↓' : ' ↑';
+}
+
+// ---- UTILS ----
+function formatMoney(n) {
+    if (!n) return '-';
+    if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+    return '$' + n.toLocaleString();
+}
+
+// ---- GO ----
+init();
+</script>
+
+<div style="text-align:center; padding:32px 0 24px; border-top:1px solid var(--border); margin-top:40px;">
+    <span style="font-family:'Optima','Optima Nova LT','URW Classico',Candara,serif; font-size:20px; font-weight:700; color:#4A90D9; letter-spacing:1px; opacity:0.7;">NBA Dashboard</span>
+</div>
+
+</body>
+</html>
