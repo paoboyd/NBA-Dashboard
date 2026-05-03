@@ -286,7 +286,7 @@ def init_db():  # create schema
     print("Schema ready")
 
 
-# ---- QUERY FUNCTIONS ----
+# Query functions
 
 def get_all_teams():
     conn = get_db()
